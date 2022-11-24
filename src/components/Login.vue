@@ -23,6 +23,7 @@
 /* import axios from 'axios'
 import qs from 'qs' */
 import Vue from 'vue'
+import fs from "fs";
 export default {
   name: 'Login',
   data() {
@@ -51,6 +52,8 @@ export default {
           console.log(res.data.resp.status_msg);
           if (res.data.resp.status_msg === 'OK') {
             //判断返回的是否正确密码
+            sessionStorage.setItem("user_id",res.data.resp.user_id);
+            sessionStorage.setItem("token",res.data.resp.token);
             Vue.prototype.$message.success("登录成功！");
             this.$router.push('/Personal')
 
@@ -70,6 +73,7 @@ export default {
           console.error(err);
           //console.log(err);
         });
+
       //发起ajax请求-Post
       //payload:{a:'zs','b':'123'}->a=zs&b=123
       /* let str=qs.stringify(params);

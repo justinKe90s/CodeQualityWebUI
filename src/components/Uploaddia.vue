@@ -1,15 +1,15 @@
 <template>
   <el-dialog
-    title="添加项目(上传后自动开始分析)"
+    title="创建项目"
     :visible.sync="dialogVisible"
     width="30%"
     top="15%"
     :append-to-body="true"
     @close="handleClose"
   >
-    <el-button class="java" type="primary" @click="java">上传.java文件</el-button>
-    <el-button class="rar" type="primary" @click="rar">上传.rar压缩包</el-button>
-    <el-button class="jar" type="primary" @click="jar">上传jar包</el-button>
+    <el-input placeholder="项目名称" v-model="name" :disabled="false"></el-input>
+
+    <el-button class="jar" type="primary" @click="okk" style="margin-top: 40px;margin-left: 160px">确定</el-button>
 
   </el-dialog>
 
@@ -17,7 +17,8 @@
 
 <script>
 
-import {ref} from "vue";
+import Vue, {ref} from "vue";
+import fs from "fs";
 
 export default {
   name: 'Uploaddia',
@@ -29,25 +30,54 @@ export default {
   },
   data() {
     return {
-      tableData:[{id:'1',address:'20221108'},
-        {id:'2',address:'20221118'}]
+      userid:'',
+      name:'',
+      token:''
     }
   },
   methods: {
     show() {
-      this.dialogVisible = ref(true)
+      this.dialogVisible = true;
     },
-    See:function (){
+    okk:function (){
+      console.log("username=%s,password=%s", this.userid, this.name);
+      this.userid = sessionStorage.getItem("user_id");
+      this.token = sessionStorage.getItem("token");
+      let url='/project/create';
+      let url1='/project/create?user_id=%3C'+this.userid+'%3E&token=%3C'+this.token+'%3Ename=%3C'+this.name+'%3E';
 
-    },
-    rar:function (){
+      //定义请求参数
+      let params = {
+        userid: this.userid,
+        token: this.token,
+        name: this.name
+      };
+      console.log(params);
 
-    },
-    jar:function (){
+      const CreateOk = (res) => {
+        if (res.data) {
+          console.log(res.data.resp.status_code);
+          if (res.data.resp.status_code === 0) {
+            //判断返回的是否成功
+            Vue.prototype.$message.success("创建成功！");
+            this.$emit("childFn");
 
-    },
-    java:function (){
+          } else {
+            Vue.prototype.$message.error("内容出错！")
+          }
+        } else {
+          Vue.prototype.$message.error("网络错误，请稍后再试")
+        }
+      }
 
+      //发起ajax请求-Post（注意参数必须保存到params属性中）
+      this.$axios.post(url1)
+        .then(res => CreateOk(res))
+        .catch(err => {
+          Vue.prototype.$message.error("请检查网络状况")
+          console.error(err);
+          //console.log(err);
+        });
     },
     handleClose() {
       this.$emit("childFn");

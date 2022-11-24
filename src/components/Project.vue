@@ -184,6 +184,7 @@ export default {
       }
     },
     loginOut:function(){
+      sessionStorage.clear();
       this.$router.push('/Login');
       Vue.prototype.$message.success("已登出")
     },

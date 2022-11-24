@@ -1,7 +1,6 @@
 <template>
   <div class="login-wrap">
     <el-button class="AddProject" type="primary" @click="addproject">添加项目</el-button>
-    <el-button class="DelProject" type="danger" @click="delproject">批量删除</el-button>
     <el-button class="LoginOut" type="warning" @click="loginOut">登出</el-button>
 
     <el-table
@@ -64,41 +63,57 @@ export default {
     Uploaddia,
     Newupload
   },
+  mounted:function() {
+    console.log("username=%s,password=%s", this.userid, this.name);
+    this.userid = sessionStorage.getItem("user_id");
+    this.token = sessionStorage.getItem("token");
+    let url='/project/list';
+    let url1='/project/list?user_id=%3C'+this.userid+'%3E&token=%3C'+this.token+'%3E';
+
+    //定义请求参数
+    let params = {
+      userid: this.userid,
+      token: this.token
+    };
+    console.log(params);
+
+    const GetOk = (res) => {
+      if (res.data) {
+        console.log(res.data.resp.status_code);
+        if (res.data.resp.status_code === 0) {
+          //判断返回的是否成功
+          let project = {pro_id:'',name:''};
+          for(project in res.data.project_list){
+            this.tableData.append(project);
+          }
+          Vue.prototype.$message.success("创建成功！");
+          this.$emit("childFn");
+
+        } else {
+          Vue.prototype.$message.error("内容出错！")
+        }
+      } else {
+        Vue.prototype.$message.error("网络错误，请稍后再试")
+      }
+    }
+
+    //发起ajax请求-Post（注意参数必须保存到params属性中）
+    this.$axios.get(url1)
+      .then(res => GetOk(res))
+      .catch(err => {
+        Vue.prototype.$message.error("请检查网络状况")
+        console.error(err);
+        //console.log(err);
+      });
+  },
   data(){
     return {
-      tableData:[{id:'1',address:'HelloWorld'}],
+      tableData:[{id:'1',address:'20221108'}],
       Visible: false,
       Visible1: false,
     }
   },
-
-
   methods:{
-    getList(){
-      let data={
-        pageModel:{
-          pageNo:this.pageNo,
-          pageSize:this.limit
-        },
-        shop:{
-          style:this.radio
-        }
-      }
-      listShop(data).then(res =>{
-        this.total = res.data.data.total
-        this.lists = res.data.data.rows.filter(res=>{
-          return res.isdelete == '0'
-        })
-      })
-        //请求完列表后，回调，过滤需要被勾选的
-        .then(()=>{
-          for(let i=0;i<this.lists.length;i++){
-            if(this.lists[i].style == this.radio){
-              this.$refs.table.toggleRowSelection(this.lists[i],true);
-            }
-          }
-        })
-    },
     receive(){
       this.Visible=false
     },
@@ -108,64 +123,18 @@ export default {
     addproject:function (){
       this.Visible = ref(true);
     },
-    delproject:function (){
-
-    },
-    handlesub:function (){
+    handlesub:function (index, row){
+      sessionStorage.removeItem('pro_id');
+      sessionStorage.setItem("pro_id",this.tableData[index].id);
       this.Visible1 = ref(true);
     },
     loginOut:function(){
       this.$router.push('/Login');
+      sessionStorage.clear();
       Vue.prototype.$message.success("已登出")
     },
     handleEdit:function (){
       this.$router.push('/Project');
-    },
-    showAllUsers:function (){
-      this.tableData=[{id:'1',address:'HelloWorld.java'}]
-      /*this.$axios.post("/allUsersInfo").then( (response)=> {
-        this.tableData=response.data;
-        this.allUsers=response.data;
-        this.pageTotal=Math.ceil(this.allUsers.length/5);
-
-        console.log(this.pageTotal);
-      }).catch(function (error) {
-        console.log("获取所有用户信息失败！")
-      })
-
-       */
-
-    },
-    handleSearch() {
-      this.$axios.post("/allUsersInfo").then( (response)=> {
-
-        let name1=document.getElementById('search').value;
-        let department1=document.getElementById('department').value
-        let data;
-        if(name1!==""||department1!==""){
-
-          if(name1==""&&department1!=="")
-            //查找
-            data = this.allUsers.find(item=>item.department==department1)
-          else if(department1==""&&name1!=="")
-            data = this.allUsers.find(item=>item.name==name1)
-          else
-            // (name1!==""&&department1!=="")
-            data = this.allUsers.find(item=>item.name==name1&&item.department==department1)
-
-          if(data == undefined){
-            this.$message({
-              showClose: true,
-              message: 'no user'
-            });
-          }else{
-            this.tableData=[data];//为什么要放在axios里面才有反应
-          }
-        } else {
-          this.showAllUsers();
-        }}).catch(function (error) {
-        console.log("获取所有用户信息失败！")
-      })
     },
     // 删除用户
     handleDelete(index, row) {
@@ -176,10 +145,17 @@ export default {
 
           console.log("id:"+this.tableData[index].id);
 
-          let params=new URLSearchParams();
-          params.append("id",this.tableData[index].id);
+          let params={
+            user_id: '',
+            pro_id: '',
+            token: ''
+          };
+          params.pro_id=this.tableData[index].id;
+          params.token=sessionStorage.getItem("token");
+          params.user_id=sessionStorage.getItem("user_id");
 
-          this.$axios.post("/deleteUser",
+
+          this.$axios.post("/project/delete",
             params
           ).then((res)=>{
             if(res.data){
@@ -198,45 +174,6 @@ export default {
         .catch(() => {});
     },
 
-    //新增用户
-    submmit(){
-
-      let employeeId0=document.getElementById("employeeId").value;
-      let name0=document.getElementById("name2").value;
-      let sex0=document.getElementById("sex2").value;
-      let department0=document.getElementById("department2").value;
-      let birthday0=document.getElementById("birthday").value;
-      let password="123456"
-      let tel0=document.getElementById("tel").value;
-
-      let params=new URLSearchParams();
-      params.append("id",employeeId0);
-      params.append("name",name0);
-      params.append("sex",sex0);
-      params.append("tel",tel0);
-      console.log(tel0);
-      params.append("department",department0);
-      params.append("password",password);
-      params.append("birthday",birthday0);
-
-      this.$axios.post(
-        "/newUser",
-        params
-      ).then((res)=>{
-          console.log(res.data)
-          if(res.data){
-            this.$message({
-              message:"增添成功",
-              type:"success"
-            });
-          }else {
-            this.$message("此Id已注册");
-          }
-        }
-      ).catch(function (error) {
-        console.log("错误！！")
-      })
-    },
   }
 }
 
@@ -265,7 +202,7 @@ export default {
    font-size: 14px;
  }
 .LoginOut{
-  position: relative;left:500px;top:0px;
+  position: relative;left:600px;top:0px;
   font-weight: 600;
   font-size: 14px;
 }
