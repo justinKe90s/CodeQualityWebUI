@@ -56,7 +56,7 @@ export default {
             sessionStorage.setItem("token",res.data.resp.token);
             Vue.prototype.$message.success("登录成功！");
             this.$router.push('/Personal')
-            // test
+
           } else {
             Vue.prototype.$message.error("用户名或密码错误！")
           }
